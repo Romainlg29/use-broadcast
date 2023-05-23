@@ -1,0 +1,9 @@
+.github
+build/
+node_modules/
+src/*.test.ts
+balel.config.json
+jest.config.json
+.prettierrc
+.eslintrc
+.gitattributes

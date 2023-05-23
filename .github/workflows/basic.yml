@@ -1,0 +1,33 @@
+name: use-broadcast-ts basic workflow
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Creating Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Caching the modules
+        uses: actions/cache@v2
+        env:
+          cache-name: node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Installing dependencies
+        run: npm install
+
+      - name: Running the tests
+        run: npm run test
