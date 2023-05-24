@@ -11,4 +11,10 @@ describe('useBroadcast', () => {
 
 		expect(result.current.state).toBe('hello');
 	});
+
+	it('should return undefined if no initial value is provided.', () => {
+		const { result } = renderHook(() => useBroadcast<string>('my-channel'));
+
+		expect(result.current.state).toBeUndefined();
+	});
 });

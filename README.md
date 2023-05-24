@@ -22,7 +22,7 @@ const MyComponent: FC = () => {
     const {
         state,
         send,
-    } = useBroadcast<{ value: number }>('my-channel', {value: 0})
+    } = useBroadcast<{ value: number }>('my-channel', { value: 0 })
 
     return (
         <>
@@ -35,15 +35,45 @@ const MyComponent: FC = () => {
 export default MyComponent;
 ```
 
+With the example above, the component will re-render when the channel receive or send a value.
+
+```jsx
+import { FC, useEffect } from 'react';
+import { useBroadcast } from 'use-broadcast-ts';
+
+const MyComponent: FC = () => {
+    const {
+        send,
+        subscribe,
+    } = useBroadcast<{ value: number }>('my-channel', { value: 0 }, { subscribe: true })
+
+    useEffect(() => {
+        const unsub = subscribe(({value}) => console.log(`My new value is: ${value}`));
+
+        return () => unsub();
+    }, []);
+
+    return (
+        <>
+            <button onClick={() => send({value: 10})}/>
+        </>
+    );
+};
+
+export default MyComponent;
+```
+
+With the example above, the component will not re-render when the channel receive or send a value but will call the `subscribe` callback.
 
 ## API
 
 ### useBroadcast
 
 ```ts
-useWasm<T>(name: string, value?: T): {
+useWasm<T>(name: string, value?: T, options?: UseBroadcastOptions): {
     state: T;
     send: (value: T) => void;
+    subscribe: (callback: (e: T) => void) => () => void;
 };
 ```
 
@@ -61,6 +91,19 @@ Type: `T` (default: `undefined`)
 
 The initial value of the channel.
 
+##### options
+
+Type: `UseBroadcastOptions` (default: `{}`)
+
+The options of the hook.
+
+##### options.subscribe
+
+Type: `boolean | undefined` (default: `undefined`)
+
+If true, the hook will not re-render the component when the channel receive a new value but will call the `subscribe` callback.
+
+
 #### Return
 
 ##### state
@@ -74,6 +117,12 @@ The current value of the channel.
 Type: `(value: T) => void`
 
 Send a new value to the channel.
+
+##### subscribe
+
+Type: `(callback: (e: T) => void) => () => void`
+
+Subscribe to the channel. The callback will be called when the channel receive a new value and when the options.subscribe is set to true.
 
 ## What data can I send?
 
