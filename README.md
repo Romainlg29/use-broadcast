@@ -1,4 +1,4 @@
-# use-wasm-ts
+# use-broadcast-ts
 
 [![Version](https://img.shields.io/npm/v/use-broadcast-ts?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/use-broadcast-ts)
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/Romainlg29/use-broadcast/basic.yml?branch=main&colorA=000000&colorB=000000)
