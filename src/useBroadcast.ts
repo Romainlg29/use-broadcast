@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Our hook will return an object with three properties:
@@ -7,16 +7,16 @@ import { useEffect, useRef, useState } from 'react';
  * - subscribe: a function that will subscribe to the broadcast (Only if options.subscribe is true)
  */
 export type UseBroadcastReturn<T> = {
-	send: (val: T) => void;
-	state: T | undefined;
-	subscribe: (callback: (e: T) => void) => () => void;
+  send: (val: T) => void;
+  state: T | undefined;
+  subscribe: (callback: (e: T) => void) => () => void;
 };
 
 /**
  * The options for the useBroadcast hook
  */
 export type UseBroadcastOptions = {
-	subscribe?: boolean;
+  subscribe?: boolean;
 };
 
 /**
@@ -25,103 +25,119 @@ export type UseBroadcastOptions = {
  * @param val The initial value of the broadcast
  * @returns Returns an object with three properties: send, state and subscribe
  */
-export const useBroadcast = <T>(name: string, val?: T, options?: UseBroadcastOptions): UseBroadcastReturn<T> => {
-	/**
-	 * Store the state of the broadcast
-	 */
-	const [state, setState] = useState<T | undefined>(val);
+export const useBroadcast = <T>(
+  name: string,
+  val?: T,
+  options?: UseBroadcastOptions
+): UseBroadcastReturn<T> => {
+  /**
+   * Store the state of the broadcast
+   */
+  const [state, setState] = useState<T | undefined>(val);
 
-	/**
-	 * Store the BroadcastChannel instance
-	 */
-	const channel = useRef<BroadcastChannel | null>(null);
+  /**
+   * Store the BroadcastChannel instance
+   */
+  const channel = useRef<BroadcastChannel | null>(null);
 
-	/**
-	 * This function send the value to all the other tabs
-	 * @param val The value to send
-	 */
-	const send = (val: T) => {
-		if (!channel.current) {
-			return;
-		}
+  /**
+   * Store the listeners
+   */
+  const listeners = useRef<((e: T) => void)[]>([]);
 
-		channel.current.postMessage(val);
+  /**
+   * This function send the value to all the other tabs
+   * @param val The value to send
+   */
+  const send = (val: T) => {
+    if (!channel.current) {
+      return;
+    }
 
-		if (!options?.subscribe) {
-			setState(val);
-		}
+    /**
+     * Send the value to all the other tabs
+     */
+    channel.current.postMessage(val);
 
-		/**
-		 * Dispatch an event to the current tab
-		 */
-		document.dispatchEvent(new CustomEvent<T>(`${name}-broadcast`, { detail: val }));
-	};
+    if (!options?.subscribe) {
+      setState(val);
+    }
 
-	/**
-	 * This function subscribe to the broadcast
-	 * @param callback The callback function
-	 * @returns Returns a function that unsubscribe the callback
-	 */
-	const subscribe = (callback: (e: T) => void) => {
-		document.addEventListener(`${name}-broadcast`, (e) => {
-			callback((e as CustomEvent<T>).detail);
-			console.log('event received');
-		});
+    /**
+     * Dispatch the event to the listeners
+     */
+    listeners.current.forEach((listener) => listener(val));
+  };
 
-		return () => document.removeEventListener(`${name}-broadcast`, (e) => callback((e as CustomEvent<T>).detail));
-	};
+  /**
+   * This function subscribe to the broadcast
+   * @param callback The callback function
+   * @returns Returns a function that unsubscribe the callback
+   */
+  const subscribe = (callback: (e: T) => void) => {
+    /**
+     * Add the callback to the listeners
+     */
+    listeners.current.push(callback);
 
-	useEffect(() => {
-		/**
-		 * If BroadcastChannel is not supported, we log an error and return
-		 */
-		if (typeof window === 'undefined') {
-			console.error('Window is undefined!');
-			return;
-		}
+    /**
+     * Return a function that unsubscribe the callback
+     */
+    return () =>
+      listeners.current.splice(listeners.current.indexOf(callback), 1);
+  };
 
-		if (!window.BroadcastChannel) {
-			console.error('BroadcastChannel is not supported!');
-			return;
-		}
+  useEffect(() => {
+    /**
+     * If BroadcastChannel is not supported, we log an error and return
+     */
+    if (typeof window === "undefined") {
+      console.error("Window is undefined!");
+      return;
+    }
 
-		/**
-		 * If the channel is null, we create a new one
-		 */
-		if (!channel.current) {
-			channel.current = new BroadcastChannel(name);
-		}
+    if (!window.BroadcastChannel) {
+      console.error("BroadcastChannel is not supported!");
+      return;
+    }
 
-		/**
-		 * Subscribe to the message event
-		 * @param e The message event
-		 */
-		channel.current.onmessage = (e) => {
-			/**
-			 * Update the state
-			 */
-			if (!options?.subscribe) {
-				setState(e.data);
-			}
+    /**
+     * If the channel is null, we create a new one
+     */
+    if (!channel.current) {
+      channel.current = new BroadcastChannel(name);
+    }
 
-			/**
-			 * Dispatch an event to all the other tabs
-			 */
-			document.dispatchEvent(new CustomEvent<T>(`${name}-broadcast`, { detail: e.data }));
-		};
+    /**
+     * Subscribe to the message event
+     * @param e The message event
+     */
+    channel.current.onmessage = (e) => {
+      /**
+       * Update the state
+       */
+      if (!options?.subscribe) {
+        setState(e.data);
+      }
 
-		/**
-		 * Cleanup
-		 */
-		return () => {
-			if (!channel.current) {
-				return;
-			}
+      /**
+       * Dispatch an event to the listeners
+       */
+      listeners.current.forEach((listener) => listener(e.data));
+    };
 
-			channel.current.close();
-			channel.current = null;
-		};
-	}, [name, options]);
+    /**
+     * Cleanup
+     */
+    return () => {
+      if (!channel.current) {
+        return;
+      }
 
-	return { send, state, subscribe };
+      channel.current.close();
+      channel.current = null;
+    };
+  }, [name, options]);
+
+  return { send, state, subscribe };
 };
