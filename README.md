@@ -25,7 +25,7 @@ type MyStore = {
     set: (n: number) => void;
 };
 
-const useStore = create<MyStore>()(
+const useStore = create<MyStore>(
     shared(
         (set) => ({
             count: 0,
