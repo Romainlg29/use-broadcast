@@ -1,7 +1,7 @@
 {
 	"name": "use-broadcast-ts",
-	"version": "1.1.4",
-	"description": "Use the Broadcast Channel API in React easily with hooks and Typescript!",
+	"version": "1.2.0",
+	"description": "Use the Broadcast Channel API in React easily with hooks or Zustand, and Typescript!",
 	"type": "module",
 	"types": "./dist/index.d.ts",
 	"main": "./dist/index.js",
@@ -40,7 +40,10 @@
 		"broadcast-channel",
 		"hooks",
 		"react",
-		"react 18"
+		"react 18",
+		"zustand",
+		"middleware",
+		"state"
 	],
 	"author": "Romain Le Gall",
 	"license": "MIT",
@@ -85,5 +88,8 @@
 	"homepage": "https://github.com/Romainlg29/use-broadcast",
 	"peerDependencies": {
 		"react": ">=18.0"
+	},
+	"optionalDependencies": {
+		"zustand": "^4.0.0"
 	}
 }

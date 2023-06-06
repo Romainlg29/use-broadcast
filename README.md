@@ -5,30 +5,74 @@
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/Romainlg29/use-broadcast/basic.yml?branch=main&colorA=000000&colorB=000000)
 ![GitHub](https://img.shields.io/github/license/Romainlg29/use-broadcast?&colorA=000000&colorB=000000)
 
-Use the Broadcast Channel API in React easily with hooks and Typescript!
+Use the Broadcast Channel API in React easily with `hooks` or `Zustand`, and Typescript!
 
 ```bash
 npm install use-broadcast-ts
 ```
 
-This package allows you to use the Broadcast API with a simple hook.
+This package allows you to use the Broadcast API with a simple hook or by using Zustand.
 
-## Usage
+## Usage with Zustand
+
+```jsx
+// useStore.ts
+import { create } from 'zustand';
+import { shared } from 'use-broadcast-ts';
+
+type MyStore = {
+    count: number;
+    set: (n: number) => void;
+};
+
+const useStore = create<MyStore>()(
+    shared(
+        (set) => ({
+            count: 0,
+            set: (n) => set({ count: n })
+        }),
+        { name: 'my-channel' }
+    )
+);
+
+// MyComponent.tsx
+import { FC } from 'react';
+
+const MyComponent : FC = () => {
+
+    const { count, set } = useStore(
+        (s) => ({
+            count: s.count,
+            set: s.set
+        })
+    )
+
+    return (
+        <p>
+            <p>Count: {count}</p>
+            <button onClick={() => set(10)}/>
+        </p>
+    )
+}
+
+export default MyComponent;
+```
+
+You can use the Zustand store like any other Zustand store, but the store will be shared between all the tabs.
+
+## Usage with hooks
 
 ```jsx
 import { FC } from 'react';
 import { useBroadcast } from 'use-broadcast-ts';
 
 const MyComponent: FC = () => {
-    const {
-        state,
-        send,
-    } = useBroadcast<{ value: number }>('my-channel', { value: 0 })
+    const { state, send } = useBroadcast<{ value: number }>('my-channel', { value: 0 });
 
     return (
         <>
             <p>My value is: {state.value}</p>
-            <button onClick={() => send({value: 10})}/>
+            <button onClick={() => send({ value: 10 })} />
         </>
     );
 };
@@ -43,20 +87,17 @@ import { FC, useEffect } from 'react';
 import { useBroadcast } from 'use-broadcast-ts';
 
 const MyComponent: FC = () => {
-    const {
-        send,
-        subscribe,
-    } = useBroadcast<{ value: number }>('my-channel', { value: 0 }, { subscribe: true })
+    const { send, subscribe } = useBroadcast<{ value: number }>('my-channel', { value: 0 }, { subscribe: true });
 
     useEffect(() => {
-        const unsub = subscribe(({value}) => console.log(`My new value is: ${value}`));
+	    const unsub = subscribe(({ value }) => console.log(`My new value is: ${value}`));
 
-        return () => unsub();
+	    return () => unsub();
     }, []);
 
     return (
         <>
-            <button onClick={() => send({value: 10})}/>
+            <button onClick={() => send({ value: 10 })} />
         </>
     );
 };
@@ -68,7 +109,30 @@ With the example above, the component will not re-render when the channel receiv
 
 ## API
 
-### useBroadcast
+### shared (Zustand)
+
+```ts
+    shared(
+        (set, get, ...) => ...,
+        options: SharedOptions
+    );
+```
+
+#### Parameters
+
+##### options
+
+Type: `SharedOptions`
+
+The options of the hook.
+
+##### options.name (required)
+
+Type: `string`
+
+The name of the channel to use.
+
+### useBroadcast (hooks)
 
 ```ts
 useWasm<T>(name: string, value?: T, options?: UseBroadcastOptions): {
@@ -103,7 +167,6 @@ The options of the hook.
 Type: `boolean | undefined` (default: `undefined`)
 
 If true, the hook will not re-render the component when the channel receive a new value but will call the `subscribe` callback.
-
 
 #### Return
 
