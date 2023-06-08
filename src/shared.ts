@@ -81,7 +81,14 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Subscribe to the broadcast channel
 	 */
 	channel.onmessage = (e) => {
-		if ((e.data as { sync: string }).sync === options.name && isMain) {
+		if ((e.data as { sync: string }).sync === options.name) {
+			/**
+			 * If this tab / window is not the main, return
+			 */
+			if (!isMain) {
+				return;
+			}
+
 			type s = { [key: string]: unknown };
 
 			/**
@@ -98,6 +105,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			 * Send the state to the other tabs
 			 */
 			channel.postMessage(state);
+
+			return;
 		}
 
 		/**
