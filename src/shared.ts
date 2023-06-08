@@ -55,24 +55,42 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	const channel = new BroadcastChannel(options.name);
 
 	/**
+	 * Types
+	 */
+	type Item = { [key: string]: unknown };
+
+	/**
 	 * Handle the Zustand set function
 	 * Trigger a postMessage to all the other tabs
 	 */
 	const onSet: typeof set = (...args) => {
 		/**
-		 * Update the state
+		 * Get the previous states
+		 */
+		const previous = get() as Item;
+
+		/**
+		 * Update the states
 		 */
 		set(...args);
 
-		type Item = { [key: string]: unknown };
-
 		/**
-		 * Get the state to send
+		 * Get the fresh states
 		 */
-		const state = args.reduce((obj, item) => (obj = { ...obj, ...(item as Item) }), {} as Item);
+		const updated = get() as Item;
 
 		/**
-		 * Send the state to all the other tabs
+		 * Get the states that changed
+		 */
+		const state = Object.entries(updated).reduce((obj, [key, val]) => {
+			if (previous[key] !== val) {
+				obj = { ...obj, [key]: val };
+			}
+			return obj;
+		}, {} as Item);
+
+		/**
+		 * Send the states to all the other tabs
 		 */
 		channel.postMessage(state);
 	};
@@ -94,7 +112,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Remove all the functions and symbols from the store
 			 */
-			const state = Object.entries(get() as s).reduce((obj, [key, val]) => {
+			const state = Object.entries(get() as Item).reduce((obj, [key, val]) => {
 				if (typeof val !== 'function' && typeof val !== 'symbol') {
 					obj = { ...obj, [key]: val };
 				}
