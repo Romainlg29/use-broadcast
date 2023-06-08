@@ -60,6 +60,10 @@ export default MyComponent;
 
 You can use the Zustand store like any other Zustand store, but the store will be shared between all the tabs.
 
+On the first "render" of the store, the middleware will check if the store already exists in another tab / window. If the store exits, it will be synchronized, else the store will be created.
+
+If no tab is opened, the store will be created and will be shared as the "main" with the other tabs / windows.
+
 ## Usage with hooks
 
 ```jsx
@@ -132,10 +136,16 @@ Type: `string`
 
 The name of the channel to use.
 
+##### options.mainTimeout
+
+Type: `number` (default: `100`)
+
+The timeout in ms to wait for the main tab to respond.
+
 ### useBroadcast (hooks)
 
 ```ts
-useWasm<T>(name: string, value?: T, options?: UseBroadcastOptions): {
+useBroadcast<T>(name: string, value?: T, options?: UseBroadcastOptions): {
     state: T;
     send: (value: T) => void;
     subscribe: (callback: (e: T) => void) => () => void;

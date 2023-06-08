@@ -1,7 +1,18 @@
 import { StateCreator, StoreMutatorIdentifier } from 'zustand';
 
 export type SharedOptions = {
+	/**
+	 * The name of the broadcast channel
+	 * It must be unique
+	 */
 	name: string;
+
+	/**
+	 * Main timeout
+	 * If the main tab / window doesn't respond in this time, this tab / window will become the main
+	 * @default 100 ms
+	 */
+	mainTimeout?: number;
 };
 
 /**
@@ -19,14 +30,25 @@ export type Shared = <
 /**
  * Type implementation of the Shared function
  */
-export type SharedImpl = <T>(f: StateCreator<T, [], []>, options: SharedOptions) => StateCreator<T, [], []>;
+type SharedImpl = <T>(f: StateCreator<T, [], []>, options: SharedOptions) => StateCreator<T, [], []>;
 
 /**
  * Shared implementation
  * @param f Zustand state creator
  * @param options The options
  */
-export const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
+const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
+	/**
+	 * Is the store synced with the other tabs
+	 */
+	let isSynced = get() !== undefined;
+
+	/**
+	 * Is this tab / window the main tab / window
+	 * When a new tab / window is opened, it will be synced with the main
+	 */
+	let isMain = false;
+
 	/**
 	 * Create the broadcast channel
 	 */
@@ -59,11 +81,59 @@ export const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Subscribe to the broadcast channel
 	 */
 	channel.onmessage = (e) => {
+		if ((e.data as { sync: string }).sync === options.name && isMain) {
+			type s = { [key: string]: unknown };
+
+			/**
+			 * Remove all the functions and symbols from the store
+			 */
+			const state = Object.entries(get() as s).reduce((obj, [key, val]) => {
+				if (typeof val !== 'function' && typeof val !== 'symbol') {
+					obj = { ...obj, [key]: val };
+				}
+				return obj;
+			}, {});
+
+			/**
+			 * Send the state to the other tabs
+			 */
+			channel.postMessage(state);
+		}
+
 		/**
 		 * Update the state
 		 */
 		set(e.data);
+
+		/**
+		 * Set the synced attribute
+		 */
+		isSynced = true;
 	};
+
+	/**
+	 * Synchronize with the main tab
+	 */
+	const synchronize = (): void => {
+		channel.postMessage({ sync: options.name });
+
+		/**
+		 * If isSynced is false after 100ms, this tab is the main tab
+		 */
+		setTimeout(() => {
+			if (!isSynced) {
+				isMain = true;
+				isSynced = true;
+			}
+		}, options.mainTimeout ?? 100);
+	};
+
+	/**
+	 * Synchronize with the main tab
+	 */
+	if (!isSynced) {
+		synchronize();
+	}
 
 	return f(onSet, get, store);
 };
