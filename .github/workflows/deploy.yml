@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: site
-          path: dist
+          path: example/dist
 
   deploy:
     concurrency: ci-${{ github.ref }}
