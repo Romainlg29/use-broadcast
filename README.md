@@ -64,6 +64,8 @@ On the first "render" of the store, the middleware will check if the store alrea
 
 If no tab is opened, the store will be created and will be shared as the "main" with the other tabs / windows.
 
+Look at this example [here](https://romainlg29.github.io/use-broadcast/)!
+
 ## Usage with hooks
 
 ```jsx

@@ -1,6 +1,7 @@
-import { useCountStore } from './stores/useCountStore';
 import SyncIcon from './assets/Sync';
 import UnsyncIcon from './assets/Unsync';
+
+import { useCountStore } from './stores/useCountStore';
 
 const tab = '    ';
 
