@@ -1,25 +1,23 @@
 name: use-broadcast-ts deploy on pages
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main
 
-    workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
-    contents: read
-    pages: write
-    id-token: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  build-and-deploy:
-    concurrency: ci-${{ github.ref }}
-
+  build:
     runs-on: ubuntu-latest
     defaults:
-        run:
-            working-directory: example
+      run:
+        working-directory: example
 
     steps:
       - name: 🛎️ Checkout
@@ -28,7 +26,7 @@ jobs:
       - name: 🔧 Creating Node
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: '18'
 
       - name: ⚡Installing dependencies
         run: npm install
@@ -36,7 +34,27 @@ jobs:
       - name: 📦 Build
         run: npm run build
 
+      - name: Upload Artifacts 🔼
+        uses: actions/upload-artifact@v1
+        with:
+          name: site
+          path: dist
+
+  deploy:
+    concurrency: ci-${{ github.ref }}
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v3
+
+      - name: 🔽 Download Artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: site
+
       - name: 🚀 Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-            folder: dist
+          folder: 'site'
