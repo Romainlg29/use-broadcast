@@ -7,4 +7,4 @@ jest.config.json
 .prettierrc
 .eslintrc
 .gitattributes
-examples/
+example/
