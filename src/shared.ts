@@ -13,6 +13,12 @@ export type SharedOptions = {
 	 * @default 100 ms
 	 */
 	mainTimeout?: number;
+
+	/**
+	 * If the stores should be synced after the first sync or not.
+	 * @default undefined
+	 */
+	unsync?: boolean;
 };
 
 /**
@@ -75,6 +81,13 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		set(...args);
 
 		/**
+		 * If the stores should not be synced, return.
+		 */
+		if (options.unsync) {
+			return;
+		}
+
+		/**
 		 * Get the fresh states
 		 */
 		const updated = get() as Item;
@@ -106,8 +119,6 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (!isMain) {
 				return;
 			}
-
-			type s = { [key: string]: unknown };
 
 			/**
 			 * Remove all the functions and symbols from the store
