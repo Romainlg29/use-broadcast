@@ -10,7 +10,7 @@ const Npm = lazy(() => import('./assets/Npm'));
 const App = () => {
 	return (
 		<div className="w-screen h-screen flex items-center justify-center gap-2">
-			<div className="toast toast-top toast-end in">
+			<div className="toast toast-top toast-end animate-in">
 				<div className="alert gap-2">
 					<button
 						className="btn btn-square btn-sm"
@@ -42,7 +42,7 @@ const App = () => {
 					</div>
 				}
 			>
-				<div className="mockup-code in">
+				<div className="mockup-code animate-in">
 					<Code />
 				</div>
 			</Suspense>
