@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.in {
+    animation: scale .5s;
+}
+
+@keyframes scale {
+    0% {
+        transform: scale(.9);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
