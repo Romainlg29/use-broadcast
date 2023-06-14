@@ -15,18 +15,18 @@ const Actions: FC = () => {
 	}));
 
 	return (
-		<>
-			<button className="btn w-40 in" onClick={increment}>
+		<div className='animate-in flex flex-col items-center justify-center gap-4'>
+			<button className="btn w-40" onClick={increment}>
 				<kbd className="kbd w-6 h-6">+</kbd>
 				Increment
 			</button>
 
-			<button className="btn w-40 in" onClick={decrement}>
+			<button className="btn w-40" onClick={decrement}>
 				<kbd className="kbd w-6 h-6">-</kbd>
 				Decrement
 			</button>
 
-			<div className="dropdown in">
+			<div className="dropdown">
 				<label tabIndex={0} className="btn m-1 w-40">
 					<kbd className="kbd w-6 h-6">
 						<Suspense fallback={<Spinner />}>{mode === 'Sync' ? <SyncIcon /> : <UnsyncIcon />}</Suspense>
@@ -43,18 +43,18 @@ const Actions: FC = () => {
 				</ul>
 			</div>
 
-			<button className="btn btn-outline mt-4 in" onClick={() => window.open('.', '_blank')}>
+			<button className="btn btn-outline mt-4" onClick={() => window.open('.', '_blank')}>
 				Open in new window
 			</button>
 
 			{mode === 'Not Sync' && (
-				<div className="toast in">
+				<div className="toast">
 					<div className="alert alert-info">
 						<span>This sync mode won't work in this example.</span>
 					</div>
 				</div>
 			)}
-		</>
+		</div>
 	);
 };
 

@@ -9,7 +9,7 @@ const Npm = lazy(() => import('./assets/Npm'));
 
 const App = () => {
 	return (
-		<div className="flex items-center justify-center w-screen h-screen">
+		<div className="w-screen h-screen flex items-center justify-center gap-2">
 			<div className="toast toast-top toast-end in">
 				<div className="alert gap-2">
 					<button
@@ -47,7 +47,7 @@ const App = () => {
 				</div>
 			</Suspense>
 
-			<div className="flex flex-col items-center justify-center w-1/4 h-1/4 gap-4">
+			<div className="w-1/4 flex justify-center items-center">
 				<Suspense fallback={<Spinner />}>
 					<Actions />
 				</Suspense>
