@@ -13,6 +13,8 @@ npm install use-broadcast-ts
 
 This package allows you to use the Broadcast API with a simple hook or by using Zustand.
 
+Checkout the [demo](https://romainlg29.github.io/use-broadcast/)!
+
 ## Usage with Zustand
 
 ```jsx
@@ -63,8 +65,6 @@ You can use the Zustand store like any other Zustand store, but the store will b
 On the first "render" of the store, the middleware will check if the store already exists in another tab / window. If the store exits, it will be synchronized, else the store will be created.
 
 If no tab is opened, the store will be created and will be shared as the "main" with the other tabs / windows.
-
-Look at this example [here](https://romainlg29.github.io/use-broadcast/)!
 
 ## Usage with hooks
 
@@ -143,6 +143,12 @@ The name of the channel to use.
 Type: `number` (default: `100`)
 
 The timeout in ms to wait for the main tab to respond.
+
+##### options.unsync
+
+Type: `boolean` (default: `false`)
+
+If true, the store will only synchronize once with the main tab. After that, the store will be unsynchronized.
 
 ### useBroadcast (hooks)
 

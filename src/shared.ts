@@ -15,8 +15,8 @@ export type SharedOptions = {
 	mainTimeout?: number;
 
 	/**
-	 * If the stores should be synced after the first sync or not.
-	 * @default undefined
+	 * If true, the store will only synchronize once with the main tab. After that, the store will be unsynchronized.
+	 * @default false
 	 */
 	unsync?: boolean;
 };
