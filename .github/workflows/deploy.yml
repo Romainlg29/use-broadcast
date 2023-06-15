@@ -3,7 +3,9 @@ name: use-broadcast-ts deploy on pages
 on:
   push:
     branches:
-      - pages
+      - main
+    paths:
+      - 'example/**'
 
   workflow_dispatch:
 
