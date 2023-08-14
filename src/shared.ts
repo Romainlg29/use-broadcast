@@ -5,7 +5,7 @@ export type SharedOptions = {
 	 * The name of the broadcast channel
 	 * It must be unique
 	 */
-	name: string;
+	name?: string;
 
 	/**
 	 * Main timeout
@@ -30,13 +30,13 @@ export type Shared = <
 	Mcs extends [StoreMutatorIdentifier, unknown][] = []
 >(
 	f: StateCreator<T, Mps, Mcs>,
-	options: SharedOptions
+	options?: SharedOptions
 ) => StateCreator<T, [], []>;
 
 /**
  * Type implementation of the Shared function
  */
-type SharedImpl = <T>(f: StateCreator<T, [], []>, options: SharedOptions) => StateCreator<T, [], []>;
+type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions) => StateCreator<T, [], []>;
 
 /**
  * Shared implementation
@@ -44,6 +44,11 @@ type SharedImpl = <T>(f: StateCreator<T, [], []>, options: SharedOptions) => Sta
  * @param options The options
  */
 const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
+	/**
+	 * Types
+	 */
+	type Item = { [key: string]: unknown };
+
 	/**
 	 * Is the store synced with the other tabs
 	 */
@@ -56,14 +61,14 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	let isMain = false;
 
 	/**
-	 * Create the broadcast channel
+	 * The broadcast channel name
 	 */
-	const channel = new BroadcastChannel(options.name);
+	const name = options?.name ?? f.toString();
 
 	/**
-	 * Types
+	 * Create the broadcast channel
 	 */
-	type Item = { [key: string]: unknown };
+	const channel = new BroadcastChannel(name);
 
 	/**
 	 * Handle the Zustand set function
@@ -83,7 +88,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		/**
 		 * If the stores should not be synced, return.
 		 */
-		if (options.unsync) {
+		if (options?.unsync) {
 			return;
 		}
 
@@ -112,7 +117,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Subscribe to the broadcast channel
 	 */
 	channel.onmessage = (e) => {
-		if ((e.data as { sync: string }).sync === options.name) {
+		if ((e.data as { sync: string }).sync === name) {
 			/**
 			 * If this tab / window is not the main, return
 			 */
@@ -153,7 +158,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Synchronize with the main tab
 	 */
 	const synchronize = (): void => {
-		channel.postMessage({ sync: options.name });
+		channel.postMessage({ sync: name });
 
 		/**
 		 * If isSynced is false after 100ms, this tab is the main tab
@@ -163,7 +168,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 				isMain = true;
 				isSynced = true;
 			}
-		}, options.mainTimeout ?? 100);
+		}, options?.mainTimeout ?? 100);
 	};
 
 	/**

@@ -66,6 +66,10 @@ On the first "render" of the store, the middleware will check if the store alrea
 
 If no tab is opened, the store will be created and will be shared as the "main" with the other tabs / windows.
 
+#### New in v1.4.0
+
+- You don't have to specify a channel name anymore. The channel name is now automatically generated. **However, I strongly recommend you to use it.**
+
 ## Usage with hooks
 
 ```jsx
@@ -120,7 +124,7 @@ With the example above, the component will not re-render when the channel receiv
 ```ts
     shared(
         (set, get, ...) => ...,
-        options: SharedOptions
+        options?: SharedOptions
     );
 ```
 
@@ -132,7 +136,7 @@ Type: `SharedOptions`
 
 The options of the hook.
 
-##### options.name (required)
+##### options.name
 
 Type: `string`
 
