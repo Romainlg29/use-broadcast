@@ -45,6 +45,14 @@ type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions) => St
  */
 const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	/**
+	 * If BroadcastChannel is not supported, return the basic store
+	 */
+	if (typeof BroadcastChannel === 'undefined') {
+		console.warn('BroadcastChannel is not supported in this browser. The store will not be shared.');
+		return f(set, get, store);
+	}
+
+	/**
 	 * Types
 	 */
 	type Item = { [key: string]: unknown };
