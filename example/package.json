@@ -12,8 +12,8 @@
 	"dependencies": {
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",
-		"use-broadcast-ts": "^1.4.0",
-		"zustand": "^4.3.8"
+		"use-broadcast-ts": "^1.4.1",
+		"zustand": "^4.5.0"
 	},
 	"devDependencies": {
 		"@types/react": "^18.0.37",
