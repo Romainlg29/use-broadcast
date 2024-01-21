@@ -235,8 +235,6 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (e.data.id === id) {
 				isMain = true;
 				tabs.splice(0, tabs.length, ...e.data.tabs);
-
-				console.log("I'm the main tab now, my id is " + id + ' and the tabs are ' + tabs.join(', '));
 			}
 		}
 	};
