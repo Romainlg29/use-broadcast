@@ -56,6 +56,27 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Types
 	 */
 	type Item = { [key: string]: unknown };
+	type Message =
+		| {
+				action: 'sync';
+		  }
+		| {
+				action: 'change';
+				state: Item;
+		  }
+		| {
+				action: 'add_new_tab';
+				id: number;
+		  }
+		| {
+				action: 'close';
+				id: number;
+		  }
+		| {
+				action: 'change_main';
+				id: number;
+				tabs: number[];
+		  };
 
 	/**
 	 * Is the store synced with the other tabs
@@ -72,6 +93,17 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * The broadcast channel name
 	 */
 	const name = options?.name ?? f.toString();
+
+	/**
+	 * The id of the tab / window
+	 */
+	let id = 0;
+
+	/**
+	 * Store a list of all the tabs / windows
+	 * Only for the main tab / window
+	 */
+	const tabs: number[] = [0];
 
 	/**
 	 * Create the broadcast channel
@@ -118,14 +150,14 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		/**
 		 * Send the states to all the other tabs
 		 */
-		channel.postMessage(state);
+		channel.postMessage({ action: 'change', state } as Message);
 	};
 
 	/**
 	 * Subscribe to the broadcast channel
 	 */
 	channel.onmessage = (e) => {
-		if ((e.data as { sync: string }).sync === name) {
+		if ((e.data as Message).action === 'sync') {
 			/**
 			 * If this tab / window is not the main, return
 			 */
@@ -146,27 +178,74 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Send the state to the other tabs
 			 */
-			channel.postMessage(state);
+			channel.postMessage({ action: 'change', state } as Message);
+
+			/**
+			 * Set the new tab / window id
+			 */
+			const new_id = tabs[tabs.length - 1]! + 1;
+			tabs.push(new_id);
+
+			channel.postMessage({ action: 'add_new_tab', id: new_id } as Message);
 
 			return;
 		}
 
 		/**
-		 * Update the state
+		 * Set an id for the tab / window if it doesn't have one
 		 */
-		set(e.data);
+		if ((e.data as Message).action === 'add_new_tab' && !isMain && id === 0) {
+			id = e.data.id;
+			return;
+		}
 
 		/**
-		 * Set the synced attribute
+		 * On receiving a new state, update the state
 		 */
-		isSynced = true;
+		if ((e.data as Message).action === 'change') {
+			/**
+			 * Update the state
+			 */
+			set(e.data.state);
+
+			/**
+			 * Set the synced attribute
+			 */
+			isSynced = true;
+		}
+
+		/**
+		 * On receiving a close message, remove the tab / window id from the list
+		 */
+		if ((e.data as Message).action === 'close') {
+			if (!isMain) {
+				return;
+			}
+
+			const index = tabs.indexOf(e.data.id);
+			if (index !== -1) {
+				tabs.splice(index, 1);
+			}
+		}
+
+		/**
+		 * On receiving a change_main message, change the main tab / window
+		 */
+		if ((e.data as Message).action === 'change_main') {
+			if (e.data.id === id) {
+				isMain = true;
+				tabs.splice(0, tabs.length, ...e.data.tabs);
+
+				console.log("I'm the main tab now, my id is " + id + ' and the tabs are ' + tabs.join(', '));
+			}
+		}
 	};
 
 	/**
 	 * Synchronize with the main tab
 	 */
 	const synchronize = (): void => {
-		channel.postMessage({ sync: name });
+		channel.postMessage({ action: 'sync' } as Message);
 
 		/**
 		 * If isSynced is false after 100ms, this tab is the main tab
@@ -178,6 +257,39 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			}
 		}, options?.mainTimeout ?? 100);
 	};
+
+	/**
+	 * Handle case when the tab / window is closed
+	 */
+	const onClose = (): void => {
+		channel.postMessage({ action: 'close', id } as Message);
+
+		/**
+		 * If we're closing the main, make the second the new main
+		 */
+		if (isMain) {
+			/**
+			 * If there is only one tab left, close the channel and return
+			 */
+			if (tabs.length === 1) {
+				/**
+				 * Clean up
+				 */
+				channel.close();
+				return;
+			}
+
+			const remaining_tabs = tabs.filter((tab) => tab !== id);
+			channel.postMessage({ action: 'change_main', id: remaining_tabs[0], tabs: remaining_tabs } as Message);
+
+			return;
+		}
+	};
+
+	/**
+	 * Add close event listener
+	 */
+	window.addEventListener('beforeunload', onClose);
 
 	/**
 	 * Synchronize with the main tab
