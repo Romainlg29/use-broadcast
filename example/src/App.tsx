@@ -13,7 +13,7 @@ const App = () => {
 			<div className="toast toast-top toast-start animate-in">
 				<div className="alert flex items-center justify-center">
 					<h1 className="font-semibold">use-broadcast-ts</h1>
-					<button className="btn btn-sm btn-neutral">v1.4.1</button>
+					<button className="btn btn-sm btn-neutral">v1.4.3</button>
 				</div>
 			</div>
 
