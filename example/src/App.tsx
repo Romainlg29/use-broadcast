@@ -42,6 +42,8 @@ const App = () => {
 				</div>
 			</div>
 
+			<div className="flex h-12 md:hidden" />
+
 			<Suspense
 				fallback={
 					<div className="flex items-center justify-center">
