@@ -15,7 +15,7 @@ const Actions: FC = () => {
 	}));
 
 	return (
-		<div className='animate-in flex flex-col items-center justify-center gap-4'>
+		<div className="animate-in grid grid-cols-2 place-items-center md:flex md:flex-wrap md:items-center md:justify-center gap-4">
 			<button className="btn w-40" onClick={increment}>
 				<kbd className="kbd w-6 h-6">+</kbd>
 				Increment
@@ -43,7 +43,7 @@ const Actions: FC = () => {
 				</ul>
 			</div>
 
-			<button className="btn btn-outline mt-4" onClick={() => window.open('.', '_blank')}>
+			<button className="btn btn-outline w-40" onClick={() => window.open('.', '_blank')}>
 				Open in new window
 			</button>
 
