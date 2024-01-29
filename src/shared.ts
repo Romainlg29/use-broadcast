@@ -296,6 +296,11 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		synchronize();
 	}
 
+	/**
+	 * Modify and return the Zustand store
+	 */
+	store.setState = onSet;
+
 	return f(onSet, get, store);
 };
 
