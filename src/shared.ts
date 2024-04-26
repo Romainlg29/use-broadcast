@@ -44,6 +44,11 @@ type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions) => St
  * @param options The options
  */
 const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
+	if (typeof window === 'undefined') {
+		console.warn('BroadcastChannel is not supported in this environment. The store will not be shared.');
+		return f(set, get, store);
+	}
+
 	/**
 	 * If BroadcastChannel is not supported, return the basic store
 	 */

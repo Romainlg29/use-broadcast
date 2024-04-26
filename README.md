@@ -66,6 +66,8 @@ On the first "render" of the store, the middleware will check if the store alrea
 
 If no tab is opened, the store will be created and will be shared as the "main" with the other tabs / windows.
 
+_**Note:** It cannot be used in server components as it needs an environment that support the Broadcast Channel API_
+
 #### New in v1.4.0
 
 - You don't have to specify a channel name anymore. The channel name is now automatically generated. **However, I strongly recommend you to use it.**
