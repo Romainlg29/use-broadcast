@@ -94,7 +94,7 @@ const Code: FC = () => {
 					{tab}
 					{tab}
 					{tab}
-					<span className="text-yellow-400">decrement</span>
+					<span className="text-yellow-400">increment</span>
 					<span className="text-blue-400">:</span> <span className="text-purple-400">()</span>{' '}
 					<span className="text-blue-400">=&gt;</span> <span className="text-yellow-400">set</span>
 					<span className="text-purple-400">{'('}</span>
