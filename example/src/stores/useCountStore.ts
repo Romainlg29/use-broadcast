@@ -10,7 +10,7 @@ type CountStore = {
 	setMode: (mode: 'Sync' | 'Not Sync') => void;
 };
 
-export const useCountStore = create<CountStore>(
+export const useCountStore = create<CountStore>()(
 	shared(
 		(set, get) => ({
 			count: 0,
