@@ -19,6 +19,11 @@ export type SharedOptions = {
 	 * @default false
 	 */
 	unsync?: boolean;
+
+	/**
+	 * Callback when this tab / window becomes the main tab / window
+	 */
+	onBecomeMain?: () => void;
 };
 
 /**
@@ -240,6 +245,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (e.data.id === id) {
 				isMain = true;
 				tabs.splice(0, tabs.length, ...e.data.tabs);
+
+				options?.onBecomeMain?.();
 			}
 		}
 	};
@@ -257,6 +264,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (!isSynced) {
 				isMain = true;
 				isSynced = true;
+
+				options?.onBecomeMain?.();
 			}
 		}, options?.mainTimeout ?? 100);
 	};

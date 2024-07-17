@@ -156,6 +156,12 @@ Type: `boolean` (default: `false`)
 
 If true, the store will only synchronize once with the main tab. After that, the store will be unsynchronized.
 
+##### options.onBecomeMain
+
+Type: `() => void`
+
+A callback that will be called when the tab becomes the main tab.
+
 ### useBroadcast (hooks)
 
 ```ts
