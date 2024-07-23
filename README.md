@@ -158,9 +158,16 @@ If true, the store will only synchronize once with the main tab. After that, the
 
 ##### options.onBecomeMain
 
-Type: `() => void`
+Type: `(id: number) => void`
 
 A callback that will be called when the tab becomes the main tab.
+
+##### options.onTabsChange
+
+Type: `(tabs: number[]) => void`
+
+A callback that will be called when the number of tabs changes.
+Only triggered on the main tab.
 
 ### useBroadcast (hooks)
 

@@ -22,8 +22,15 @@ export type SharedOptions = {
 
 	/**
 	 * Callback when this tab / window becomes the main tab / window
+	 * Triggered only in the main tab / window
 	 */
-	onBecomeMain?: () => void;
+	onBecomeMain?: (id: number) => void;
+
+	/**
+	 * Callback when a new tab is opened / closed
+	 * Triggered only in the main tab / window
+	 */
+	onTabsChange?: (ids: number[]) => void;
 };
 
 /**
@@ -196,6 +203,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			const new_id = tabs[tabs.length - 1]! + 1;
 			tabs.push(new_id);
 
+			options?.onTabsChange?.(tabs);
+
 			channel.postMessage({ action: 'add_new_tab', id: new_id } as Message);
 
 			return;
@@ -235,6 +244,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			const index = tabs.indexOf(e.data.id);
 			if (index !== -1) {
 				tabs.splice(index, 1);
+
+				options?.onTabsChange?.(tabs);
 			}
 		}
 
@@ -246,7 +257,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 				isMain = true;
 				tabs.splice(0, tabs.length, ...e.data.tabs);
 
-				options?.onBecomeMain?.();
+				options?.onBecomeMain?.(id);
 			}
 		}
 	};
@@ -265,7 +276,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 				isMain = true;
 				isSynced = true;
 
-				options?.onBecomeMain?.();
+				options?.onBecomeMain?.(id);
 			}
 		}, options?.mainTimeout ?? 100);
 	};
