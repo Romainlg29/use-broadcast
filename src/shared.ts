@@ -1,4 +1,14 @@
-import { StateCreator, StoreMutatorIdentifier } from 'zustand';
+import { Mutate, StateCreator, StoreApi, StoreMutatorIdentifier } from 'zustand';
+
+export type Write<T, U> = Omit<T, keyof U> & U;
+export type Cast<T, U> = T extends U ? T : U;
+
+export type SharedState = {
+	/**
+	 * If this tab / window is the main tab / window
+	 */
+	isMain: boolean;
+};
 
 export type SharedOptions = {
 	/**
@@ -41,9 +51,18 @@ export type Shared = <
 	Mps extends [StoreMutatorIdentifier, unknown][] = [],
 	Mcs extends [StoreMutatorIdentifier, unknown][] = []
 >(
-	f: StateCreator<T, Mps, Mcs>,
+	f: StateCreator<T, [...Mps, ['shared', SharedState]], Mcs>,
 	options?: SharedOptions
-) => StateCreator<T, [], []>;
+) => StateCreator<T, Mps, [['shared', SharedState], ...Mcs]>;
+
+/**
+ * Extend the Zustand store
+ */
+declare module 'zustand' {
+	interface StoreMutators<S, A> {
+		shared: Write<Cast<S, object>, { shared: A }>;
+	}
+}
 
 /**
  * Type implementation of the Shared function
@@ -55,10 +74,10 @@ type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions) => St
  * @param f Zustand state creator
  * @param options The options
  */
-const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
+const sharedImpl: SharedImpl = (f, options) => (set, get, _store) => {
 	if (typeof window === 'undefined') {
 		console.warn('BroadcastChannel is not supported in this environment. The store will not be shared.');
-		return f(set, get, store);
+		return f(set, get, _store);
 	}
 
 	/**
@@ -66,12 +85,14 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 */
 	if (typeof BroadcastChannel === 'undefined') {
 		console.warn('BroadcastChannel is not supported in this browser. The store will not be shared.');
-		return f(set, get, store);
+		return f(set, get, _store);
 	}
 
 	/**
 	 * Types
 	 */
+	type T = ReturnType<typeof f>;
+
 	type Item = { [key: string]: unknown };
 	type Message =
 		| {
@@ -94,6 +115,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 				id: number;
 				tabs: number[];
 		  };
+
+	const store = _store as Mutate<StoreApi<T>, [['shared', SharedState]]>;
 
 	/**
 	 * Is the store synced with the other tabs
@@ -343,4 +366,4 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
  *      )
  * );
  */
-export const shared = sharedImpl as Shared;
+export const shared = sharedImpl as unknown as Shared;
