@@ -147,7 +147,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		/**
 		 * Update the states
 		 */
-		set(...args);
+		set(...(args as Parameters<typeof set>));
 
 		/**
 		 * If the stores should not be synced, return.

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import { shared } from 'use-broadcast-ts';
+import { createWithEqualityFn as create } from 'zustand/traditional';
 
 type CountStore = {
 	count: number;
