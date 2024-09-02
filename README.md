@@ -11,7 +11,7 @@ Use the Broadcast Channel API in React easily with `hooks` or `Zustand`, and Typ
 npm install use-broadcast-ts
 ```
 
-This package allows you to use the Broadcast API with a simple hook or by using Zustand.
+This package allows you to use the Broadcast API with a simple hook or by using Zustand v4/v5.
 
 Checkout the [demo](https://romainlg29.github.io/use-broadcast/)!
 
@@ -39,15 +39,12 @@ const useStore = create<MyStore>(
 
 // MyComponent.tsx
 import { FC } from 'react';
+import { useShallow } from 'zustand/shallow'
 
 const MyComponent : FC = () => {
 
-    const { count, set } = useStore(
-        (s) => ({
-            count: s.count,
-            set: s.set
-        })
-    )
+    const count = useStore((s) => s.count);
+    const set = useStore((s) => s.set);
 
     return (
         <p>
