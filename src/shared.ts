@@ -43,7 +43,7 @@ export type Shared = <
 >(
 	f: StateCreator<T, Mps, Mcs>,
 	options?: SharedOptions
-) => StateCreator<T, [], []>;
+) => StateCreator<T, Mps, Mcs>;
 
 /**
  * Type implementation of the Shared function
