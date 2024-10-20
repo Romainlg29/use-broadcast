@@ -35,7 +35,7 @@ jobs:
         run: npm run build
 
       - name: Upload Artifacts 🔼
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: site
           path: example/dist
