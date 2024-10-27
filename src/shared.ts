@@ -47,6 +47,7 @@ export type SharedOptions<T = unknown> = {
 	onTabsChange?: (ids: number[]) => void;
 };
 
+
 /**
  * The Shared type
  */
@@ -187,15 +188,9 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		if (options?.partialize) {
 			// Partialize the state
 			state = options.partialize(updated as T);
-		} else {
-			// Default
-			state = Object.entries(updated).reduce((obj, [key, val]) => {
-				if (previous[key] !== val) {
-					obj = { ...obj, [key]: val };
-				}
-				return obj;
-			}, {} as Item);
 		}
+
+		state = JSON.parse(JSON.stringify(updated));
 
 		/**
 		 * Send the states to all the other tabs
@@ -225,15 +220,9 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (options?.rehydrate) {
 				// Rehydrate the state
 				state = options.rehydrate(e.data.state as Partial<T>) as Item;
-			} else {
-				// Default
-				state = Object.entries(e.data.state as Item).reduce((obj, [key, val]) => {
-					if (typeof val !== 'function' && typeof val !== 'symbol') {
-						obj = { ...obj, [key]: val };
-					}
-					return obj;
-				}, {} as Item);
 			}
+
+			state =  JSON.parse(JSON.stringify(get() as Item));
 
 			/**
 			 * Send the state to the other tabs

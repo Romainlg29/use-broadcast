@@ -4,7 +4,7 @@ import { useCountStore } from '../stores/useCountStore';
 const tab = '    ';
 
 const Code: FC = () => {
-	const { count, mode } = useCountStore((s) => ({ count: s.count, mode: s.mode }));
+	const { count, bigCount, nestedObj, mode } = useCountStore((s) => ({ count: s.count, bigCount: s.bigCount, nestedObj: s.nestedObj, mode: s.mode }));
 
 	return (
 		<>
@@ -87,6 +87,22 @@ const Code: FC = () => {
 					{tab}
 					{tab}
 					<span className="text-blue-300">count:</span> <span className="text-green-400">{count}</span>,
+				</code>
+			</pre>
+			<pre data-prefix="13.5">
+				<code>
+					{tab}
+					{tab}
+					{tab}
+					<span className="text-blue-300">bigCount:</span> <span className="text-green-400">{bigCount.toString()}</span>,
+				</code>
+			</pre>
+			<pre data-prefix="13.5">
+				<code>
+					{tab}
+					{tab}
+					{tab}
+					<span className="text-blue-300">innerCount:</span> <span className="text-green-400">{JSON.stringify(nestedObj)}</span>,
 				</code>
 			</pre>
 			<pre data-prefix="14">
