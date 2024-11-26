@@ -1,6 +1,6 @@
 import { StateCreator, StoreMutatorIdentifier } from 'zustand';
 
-export type SharedOptions = {
+export type SharedOptions<T = unknown> = {
 	/**
 	 * The name of the broadcast channel
 	 * It must be unique
@@ -19,6 +19,20 @@ export type SharedOptions = {
 	 * @default false
 	 */
 	unsync?: boolean;
+
+	/**
+	 * Custom function to parse the state before sending it to the other tabs
+	 * @param state The state
+	 * @returns The parsed state
+	 */
+	partialize?: (state: T) => Partial<T>;
+
+	/**
+	 * Custom function to restore the state after receiving it from the other tabs
+	 * @param state The state
+	 * @returns The restored state
+	 */
+	rehydrate?: (state: Partial<T>) => T;
 
 	/**
 	 * Callback when this tab / window becomes the main tab / window
@@ -42,13 +56,13 @@ export type Shared = <
 	Mcs extends [StoreMutatorIdentifier, unknown][] = []
 >(
 	f: StateCreator<T, Mps, Mcs>,
-	options?: SharedOptions
+	options?: SharedOptions<T>
 ) => StateCreator<T, Mps, Mcs>;
 
 /**
  * Type implementation of the Shared function
  */
-type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions) => StateCreator<T, [], []>;
+type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions<T>) => StateCreator<T, [], []>;
 
 /**
  * Shared implementation
@@ -79,6 +93,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	/**
 	 * Types
 	 */
+	type T = ReturnType<typeof get>;
+
 	type Item = { [key: string]: unknown };
 	type Message =
 		| {
@@ -163,13 +179,23 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 
 		/**
 		 * Get the states that changed
+		 * If the partialize function is provided, use it to parse the state
+		 * If not, use the default method for legacy support
 		 */
-		const state = Object.entries(updated).reduce((obj, [key, val]) => {
-			if (previous[key] !== val) {
-				obj = { ...obj, [key]: val };
-			}
-			return obj;
-		}, {} as Item);
+		let state: Item = {};
+
+		if (options?.partialize) {
+			// Partialize the state
+			state = options.partialize(updated as T);
+		} else {
+			// Default
+			state = Object.entries(updated).reduce((obj, [key, val]) => {
+				if (previous[key] !== val) {
+					obj = { ...obj, [key]: val };
+				}
+				return obj;
+			}, {} as Item);
+		}
 
 		/**
 		 * Send the states to all the other tabs
@@ -191,13 +217,23 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 
 			/**
 			 * Remove all the functions and symbols from the store
+			 * If the rehydrate function is provided, use it to restore the state
+			 * If not, use the default method for legacy support
 			 */
-			const state = Object.entries(get() as Item).reduce((obj, [key, val]) => {
-				if (typeof val !== 'function' && typeof val !== 'symbol') {
-					obj = { ...obj, [key]: val };
-				}
-				return obj;
-			}, {});
+			let state: Item = {};
+
+			if (options?.rehydrate) {
+				// Rehydrate the state
+				state = options.rehydrate(e.data.state as Partial<T>) as Item;
+			} else {
+				// Default
+				state = Object.entries(e.data.state as Item).reduce((obj, [key, val]) => {
+					if (typeof val !== 'function' && typeof val !== 'symbol') {
+						obj = { ...obj, [key]: val };
+					}
+					return obj;
+				}, {} as Item);
+			}
 
 			/**
 			 * Send the state to the other tabs
