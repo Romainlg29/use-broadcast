@@ -35,6 +35,9 @@ export const useCountStore = create<CountStore>()(
 			mode: 'Sync',
 			setMode: (mode) => set({ mode }),
 		}),
-		{ name: 'my-store' }
+		{ 
+			name: 'my-store',
+			partialize: (state) => ({count: state.count, nestedObj: state.nestedObj}),
+		 }
 	)
 );

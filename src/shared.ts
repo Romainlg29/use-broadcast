@@ -28,13 +28,6 @@ export type SharedOptions<T = unknown> = {
 	partialize?: (state: T) => Partial<T>;
 
 	/**
-	 * Custom function to restore the state after receiving it from the other tabs
-	 * @param state The state
-	 * @returns The restored state
-	 */
-	rehydrate?: (state: Partial<T>) => T;
-
-	/**
 	 * Callback when this tab / window becomes the main tab / window
 	 * Triggered only in the main tab / window
 	 */
@@ -179,7 +172,6 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		const updated = get() as Item;
 
 		/**
-		 * Get the states that changed
 		 * If the partialize function is provided, use it to parse the state
 		 * If not, use the default method for legacy support
 		 */
@@ -189,8 +181,21 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			// Partialize the state
 			state = options.partialize(updated as T);
 		}
+		
+		/**
+		 * Get the states that changed
+		 */
+		const replacer = Object.entries(updated).reduce((arr, [key, val]) => {
+			if (previous[key] !== val) {
+				arr.push(key)
+			}
+			return arr;
+		}, [] as string[]);
 
-		state = JSON.parse(JSON.stringify(updated));
+		/**
+		 * Remove unsupported types
+		 */
+		state = JSON.parse(JSON.stringify(state, replacer));
 
 		/**
 		 * Send the states to all the other tabs
@@ -212,17 +217,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 
 			/**
 			 * Remove all the functions and symbols from the store
-			 * If the rehydrate function is provided, use it to restore the state
-			 * If not, use the default method for legacy support
 			 */
-			let state: Item = {};
-
-			if (options?.rehydrate) {
-				// Rehydrate the state
-				state = options.rehydrate(e.data.state as Partial<T>) as Item;
-			}
-
-			state =  JSON.parse(JSON.stringify(get() as Item));
+			const state =  JSON.parse(JSON.stringify(get() as Item));
 
 			/**
 			 * Send the state to the other tabs
