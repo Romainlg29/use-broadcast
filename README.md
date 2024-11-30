@@ -244,7 +244,7 @@ You can send any of the supported types by the structured clone algorithm and JS
 - `Date`
 - `...`
 
-In short, you cannot send:
+In short, you cannot send :
 
 - `Function`
 - `Dom Element`
