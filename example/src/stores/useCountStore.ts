@@ -1,3 +1,4 @@
+// import { shared } from 'use-broadcast-ts';
 import { shared } from '../../../src/shared';
 import { createWithEqualityFn as create } from 'zustand/traditional';
 
@@ -14,6 +15,19 @@ type CountStore = {
 	setMode: (mode: 'Sync' | 'Not Sync') => void;
 };
 
+const merge = (state: CountStore, receivedState: Partial<CountStore>) => {
+	const newState = {
+		...state,
+		count: receivedState.count,
+		nestedObj: {
+			...state.nestedObj,
+			innerCount: receivedState?.nestedObj?.innerCount,
+		}
+	}
+
+	return newState
+}
+
 export const useCountStore = create<CountStore>()(
 	shared(
 		(set, get) => ({
@@ -22,12 +36,9 @@ export const useCountStore = create<CountStore>()(
 			decrement: () => set((s) => ({ count: s.count - 1, bigCount: s.bigCount - 1n, nestedObj: { ...s.nestedObj, innerCount: s.nestedObj.innerCount -= 1 } })),
 
 			nestedObj: {
-				innerFunc: () => console.log("This shouldn't cause errors"),
-				innerSymbol: Symbol("hi"),
+				// innerFunc: () => console.log("This shouldn't cause errors"),
+				// innerSymbol: Symbol("hi"),
 				innerCount: 0,
-				hugeObject: {
-					key: 'a really big object'
-				},
 			},
 
 			bigCount: BigInt(Number.MAX_SAFE_INTEGER)*100n,
@@ -38,6 +49,7 @@ export const useCountStore = create<CountStore>()(
 		{ 
 			name: 'my-store',
 			partialize: (state) => ({count: state.count, nestedObj: state.nestedObj}),
+			merge: merge,
 		 }
 	)
 );

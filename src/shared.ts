@@ -28,6 +28,14 @@ export type SharedOptions<T = unknown> = {
 	partialize?: (state: T) => Partial<T>;
 
 	/**
+	 * Custom function to merge the state after receiving it from the other tabs
+	 * @param state The current state
+	 * @param receivedState The state received from the other tab
+	 * @returns The restored state
+	 */
+	merge?: (state: T, receivedState: Partial<T>) => T;
+
+	/**
 	 * Callback when this tab / window becomes the main tab / window
 	 * Triggered only in the main tab / window
 	 */
@@ -45,7 +53,7 @@ export type SharedOptions<T = unknown> = {
  * The Shared type
  */
 export type Shared = <
-	T,
+	T extends object,
 	Mps extends [StoreMutatorIdentifier, unknown][] = [],
 	Mcs extends [StoreMutatorIdentifier, unknown][] = []
 >(
@@ -145,15 +153,32 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	const channel = new BroadcastChannel(name);
 
 	/**
+	 * Sends the current state to the other tabs
+	 */
+	const sendCurrentStateToOtherTabs = () => {
+		let state = get() as Item;
+
+		if (options?.partialize) {
+			// Partialize the state
+			state = options.partialize(state as T);
+		}
+
+		/**
+		 * Remove all the functions and symbols from the store
+		 */
+		state =  JSON.parse(JSON.stringify(state));
+
+		/**
+		 * Send the state to the other tabs
+		 */
+		channel.postMessage({ action: 'change', state } as Message);
+	}
+
+	/**
 	 * Handle the Zustand set function
 	 * Trigger a postMessage to all the other tabs
 	 */
 	const onSet: typeof set = (...args) => {
-		/**
-		 * Get the previous states
-		 */
-		const previous = get() as Item;
-
 		/**
 		 * Update the states
 		 */
@@ -166,41 +191,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			return;
 		}
 
-		/**
-		 * Get the fresh states
-		 */
-		const updated = get() as Item;
-
-		/**
-		 * If the partialize function is provided, use it to parse the state
-		 * If not, use the default method for legacy support
-		 */
-		let state: Item = {};
-
-		if (options?.partialize) {
-			// Partialize the state
-			state = options.partialize(updated as T);
-		}
-		
-		/**
-		 * Get the states that changed
-		 */
-		const replacer = Object.entries(updated).reduce((arr, [key, val]) => {
-			if (previous[key] !== val) {
-				arr.push(key)
-			}
-			return arr;
-		}, [] as string[]);
-
-		/**
-		 * Remove unsupported types
-		 */
-		state = JSON.parse(JSON.stringify(state, replacer));
-
-		/**
-		 * Send the states to all the other tabs
-		 */
-		channel.postMessage({ action: 'change', state } as Message);
+		sendCurrentStateToOtherTabs();
 	};
 
 	/**
@@ -215,15 +206,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 				return;
 			}
 
-			/**
-			 * Remove all the functions and symbols from the store
-			 */
-			const state =  JSON.parse(JSON.stringify(get() as Item));
-
-			/**
-			 * Send the state to the other tabs
-			 */
-			channel.postMessage({ action: 'change', state } as Message);
+			sendCurrentStateToOtherTabs();
 
 			/**
 			 * Set the new tab / window id
@@ -253,7 +236,14 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Update the state
 			 */
-			set(e.data.state);
+			set((state) => (
+				options?.merge?
+					options.merge!(state, e.data.state as Partial<T>):
+					e.data.state
+			));
+
+			console.log(get() as Item)
+
 
 			/**
 			 * Set the synced attribute

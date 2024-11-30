@@ -153,6 +153,16 @@ Type: `boolean` (default: `false`)
 
 If true, the store will only synchronize once with the main tab. After that, the store will be unsynchronized.
 
+##### options.partialize
+Type: `(state: T) => Partial<T>` (default: `undefined`)
+
+Similar to `partialize` in the [Zustand persist middleware](https://zustand.docs.pmnd.rs/integrations/persisting-store-data#partialize), allows you to pick which of the state's fields are sent to other tabs. Can also be used to pre-process the state before it's sent if needed.
+
+##### options.merge
+Type: `(state: T, receivedState: Partial<T>) => T` (default: `undefined`)
+
+Similar to `merge` in the [Zustand persist middleware](https://zustand.docs.pmnd.rs/integrations/persisting-store-data#merge). A custom function that allows you to merge the current state with the state received from another tab.
+
 ##### options.onBecomeMain
 
 Type: `(id: number) => void`
@@ -224,7 +234,7 @@ Subscribe to the channel. The callback will be called when the channel receive a
 
 ## What data can I send?
 
-You can send any of the supported types by the structured clone algorithm like :
+You can send any of the supported types by the structured clone algorithm and JSON.stringify like :
 
 - `String`
 - `Boolean`
@@ -234,13 +244,14 @@ You can send any of the supported types by the structured clone algorithm like :
 - `Date`
 - `...`
 
-In short, you cannot send :
+In short, you cannot send:
 
 - `Function`
 - `Dom Element`
+- `BigInt`
 - And some other types
 
-See the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm) for more information.
+See the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm) for more information. However, if you need to, you could use `partialize` to convert an unsupported type to a string and convert it back on the other end by providing a `merge` function.
 
 ## License
 
