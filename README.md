@@ -234,7 +234,7 @@ Subscribe to the channel. The callback will be called when the channel receive a
 
 ## What data can I send?
 
-You can send any of the supported types by the structured clone algorithm and JSON.stringify like :
+You can send any of the supported types by the structured clone algorithm like :
 
 - `String`
 - `Boolean`
@@ -248,7 +248,6 @@ In short, you cannot send :
 
 - `Function`
 - `Dom Element`
-- `BigInt`
 - And some other types
 
 See the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm) for more information. However, if you need to, you could use `partialize` to convert an unsupported type to a string and convert it back on the other end by providing a `merge` function.
