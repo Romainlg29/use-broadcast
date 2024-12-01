@@ -48,6 +48,23 @@ export type SharedOptions<T = unknown> = {
 	onTabsChange?: (ids: number[]) => void;
 };
 
+// \uFFFF is a non-character, just used as a signal https://stackoverflow.com/a/6493987
+const bigIntFoundStr = 'use-broadcast-ts-bigint-\uFFFF'
+
+function jsonReplacer(key: string, value: any) {
+	if (typeof value === 'bigint') {
+	  return String(value) + bigIntFoundStr;
+	}
+	return value;
+}
+
+function jsonReviver(key: string, value: any){
+	if (typeof value === 'string' && value.endsWith(bigIntFoundStr)) {
+		return BigInt(value.replace(bigIntFoundStr, ''))
+	}
+	return value
+}
+
 
 /**
  * The Shared type
@@ -152,16 +169,34 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 */
 	const channel = new BroadcastChannel(name);
 
+	const sendChangeToOtherTabs = () => {
+
+		let state: Item = get() as Item;
+
+		/**
+		 * If the partialize function is provided, use it to parse the state
+		 */
+		if (options?.partialize) {
+			// Partialize the state
+			state = options.partialize(state as T);
+		}
+
+		/**
+		 * Remove unsupported types, preserving BigInt with replacer and reviver
+		 */
+		state = JSON.parse(JSON.stringify(state, jsonReplacer), jsonReviver)
+
+		/**
+		 * Send the states to all the other tabs
+		 */
+		channel.postMessage({ action: 'change', state } as Message);	
+	}
+
 	/**
 	 * Handle the Zustand set function
 	 * Trigger a postMessage to all the other tabs
 	 */
 	const onSet: typeof set = (...args) => {
-		/**
-		 * Get the previous states
-		 */
-		const previous = get() as Item;
-
 		/**
 		 * Update the states
 		 */
@@ -174,43 +209,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			return;
 		}
 
-		/**
-		 * Get the fresh states
-		 */
-		const updated = get() as Item;
-
-		/**
-		 * If the partialize function is provided, use it to parse the state
-		 */
-		let state: Item = updated;
-
-		if (options?.partialize) {
-			// Partialize the state
-			state = options.partialize(updated as T);
-		}
-
-		
-		/**
-		 * Get the states that changed
-		 */
-		// const replacer = Object.entries(updated).reduce((arr, [key, val]) => {
-		// 	if (previous[key] !== val || typeof val === 'object') {
-		// 		arr.push(key)
-		// 		console.log(key)
-		// 		console.log(typeof val == 'object')
-		// 	}
-		// 	return arr;
-		// }, [] as string[]);
-
-		/**
-		 * Remove unsupported types and keys that haven't changed
-		 */
-		state = JSON.parse(JSON.stringify(state));
-
-		/**
-		 * Send the states to all the other tabs
-		 */
-		channel.postMessage({ action: 'change', state } as Message);
+		sendChangeToOtherTabs();
 	};
 
 	/**
@@ -224,23 +223,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (!isMain) {
 				return;
 			}
-
-			let state = get() as Item;
-
-			if (options?.partialize) {
-				// Partialize the state
-				state = options.partialize(state as T);
-			}
-
-			/**
-			 * Remove all the functions and symbols from the store
-			 */
-			state =  JSON.parse(JSON.stringify(state));
-
-			/**
-			 * Send the state to the other tabs
-			 */
-			channel.postMessage({ action: 'change', state } as Message);
+			
+			sendChangeToOtherTabs();
 
 			/**
 			 * Set the new tab / window id
@@ -270,14 +254,13 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Update the state
 			 */
-				set((state) => (
-					options?.merge?
-						options.merge(state, e.data.state as Partial<T>):
-						e.data.state
-				));
+			console.log(e.data.state)
 
-			console.log(get() as Item)
-
+			set((state) => (
+				options?.merge?
+					options.merge(state, e.data.state as Partial<T>):
+					e.data.state
+			));
 
 			/**
 			 * Set the synced attribute

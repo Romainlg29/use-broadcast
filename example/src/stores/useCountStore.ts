@@ -15,7 +15,7 @@ export const useCountStore = create<CountStore>()(
 		(set, get) => ({
 			count: 0,
 			increment: () => set((s) => ({ count: s.count + 1 })),
-			decrement: () => set((s) => ({ count: s.count - 1 })),
+			decrement: () => set({ count: get().count - 1 }),
 
 			mode: 'Sync',
 			setMode: (mode) => set({ mode }),
