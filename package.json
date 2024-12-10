@@ -1,6 +1,6 @@
 {
 	"name": "use-broadcast-ts",
-	"version": "1.8.0",
+	"version": "2.0.0",
 	"description": "Use the Broadcast Channel API in React easily with hooks or Zustand, and Typescript!",
 	"type": "module",
 	"types": "./dist/index.d.ts",
