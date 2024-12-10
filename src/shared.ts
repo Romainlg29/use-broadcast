@@ -21,6 +21,13 @@ export type SharedOptions<T = unknown> = {
 	unsync?: boolean;
 
 	/**
+	 * If true, will not serialize with JSON.parse(JSON.stringify(state)) the state before sending it.
+	 * This results in a performance boost, but it is on the user to ensure there are no unsupported types in their state.
+	 * @default false
+	 */
+	skipSerialization?: boolean;
+
+	/**
 	 * Custom function to parse the state before sending it to the other tabs
 	 * @param state The state
 	 * @returns The parsed state
@@ -47,24 +54,6 @@ export type SharedOptions<T = unknown> = {
 	 */
 	onTabsChange?: (ids: number[]) => void;
 };
-
-// \uFFFF is a non-character, just used as a signal https://stackoverflow.com/a/6493987
-const bigIntFoundStr = 'use-broadcast-ts-bigint-\uFFFF'
-
-function jsonReplacer(key: string, value: any) {
-	if (typeof value === 'bigint') {
-	  return String(value) + bigIntFoundStr;
-	}
-	return value;
-}
-
-function jsonReviver(key: string, value: any){
-	if (typeof value === 'string' && value.endsWith(bigIntFoundStr)) {
-		return BigInt(value.replace(bigIntFoundStr, ''))
-	}
-	return value
-}
-
 
 /**
  * The Shared type
@@ -182,9 +171,12 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		}
 
 		/**
-		 * Remove unsupported types, preserving BigInt with replacer and reviver
+		 * If the user did not specify that serialization should be skipped, remove unsupported types 
 		 */
-		state = JSON.parse(JSON.stringify(state, jsonReplacer), jsonReviver)
+		if (!options?.skipSerialization){
+			// Remove unserializable types (functions, Symbols, etc.) from the state.
+			state = JSON.parse(JSON.stringify(state))
+		}
 
 		/**
 		 * Send the states to all the other tabs

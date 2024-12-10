@@ -153,6 +153,12 @@ Type: `boolean` (default: `false`)
 
 If true, the store will only synchronize once with the main tab. After that, the store will be unsynchronized.
 
+##### options.skipSerialization
+
+Type: `boolean` (default `false`)
+
+If true, will not serialize the state with `JSON.parse(JSON.stringify(state))` before sending it. This results in a performance boost, but you will have to ensure there are no unsupported types in the state or it will result in errors. See section [What data can I send?](#what-data-can-i-send) for more info.
+
 ##### options.partialize
 Type: `(state: T) => Partial<T>` (default: `undefined`)
 
@@ -234,7 +240,7 @@ Subscribe to the channel. The callback will be called when the channel receive a
 
 ## What data can I send?
 
-You can send any of the supported types by the structured clone algorithm like :
+You can send any of the supported types by the structured clone algorithm and `JSON.stringify` like :
 
 - `String`
 - `Boolean`
@@ -248,6 +254,7 @@ In short, you cannot send :
 
 - `Function`
 - `Dom Element`
+- `BigInt` (This is only unsupported by `JSON.stringify`, so if you set `skipSerialization=true`, `BigInt`'s will work)
 - And some other types
 
 See the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm) for more information. However, if you need to, you could use `partialize` to convert an unsupported type to a string and convert it back on the other end by providing a `merge` function.
