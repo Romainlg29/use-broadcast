@@ -246,8 +246,6 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Update the state
 			 */
-			console.log(e.data.state)
-
 			set((state) => (
 				options?.merge?
 					options.merge(state, e.data.state as Partial<T>):
