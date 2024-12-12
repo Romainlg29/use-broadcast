@@ -1,6 +1,6 @@
 import { StateCreator, StoreMutatorIdentifier } from 'zustand';
 
-export type SharedOptions = {
+export type SharedOptions<T = unknown> = {
 	/**
 	 * The name of the broadcast channel
 	 * It must be unique
@@ -21,6 +21,28 @@ export type SharedOptions = {
 	unsync?: boolean;
 
 	/**
+	 * If true, will not serialize with JSON.parse(JSON.stringify(state)) the state before sending it.
+	 * This results in a performance boost, but it is on the user to ensure there are no unsupported types in their state.
+	 * @default false
+	 */
+	skipSerialization?: boolean;
+
+	/**
+	 * Custom function to parse the state before sending it to the other tabs
+	 * @param state The state
+	 * @returns The parsed state
+	 */
+	partialize?: (state: T) => Partial<T>;
+
+	/**
+	 * Custom function to merge the state after receiving it from the other tabs
+	 * @param state The current state
+	 * @param receivedState The state received from the other tab
+	 * @returns The restored state
+	 */
+	merge?: (state: T, receivedState: Partial<T>) => T;
+
+	/**
 	 * Callback when this tab / window becomes the main tab / window
 	 * Triggered only in the main tab / window
 	 */
@@ -37,18 +59,18 @@ export type SharedOptions = {
  * The Shared type
  */
 export type Shared = <
-	T,
+	T extends object,
 	Mps extends [StoreMutatorIdentifier, unknown][] = [],
 	Mcs extends [StoreMutatorIdentifier, unknown][] = []
 >(
 	f: StateCreator<T, Mps, Mcs>,
-	options?: SharedOptions
+	options?: SharedOptions<T>
 ) => StateCreator<T, Mps, Mcs>;
 
 /**
  * Type implementation of the Shared function
  */
-type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions) => StateCreator<T, [], []>;
+type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions<T>) => StateCreator<T, [], []>;
 
 /**
  * Shared implementation
@@ -79,6 +101,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	/**
 	 * Types
 	 */
+	type T = ReturnType<typeof get>;
+
 	type Item = { [key: string]: unknown };
 	type Message =
 		| {
@@ -134,16 +158,37 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 */
 	const channel = new BroadcastChannel(name);
 
+	const sendChangeToOtherTabs = () => {
+
+		let state: Item = get() as Item;
+
+		/**
+		 * If the partialize function is provided, use it to parse the state
+		 */
+		if (options?.partialize) {
+			// Partialize the state
+			state = options.partialize(state as T);
+		}
+
+		/**
+		 * If the user did not specify that serialization should be skipped, remove unsupported types 
+		 */
+		if (!options?.skipSerialization){
+			// Remove unserializable types (functions, Symbols, etc.) from the state.
+			state = JSON.parse(JSON.stringify(state))
+		}
+
+		/**
+		 * Send the states to all the other tabs
+		 */
+		channel.postMessage({ action: 'change', state } as Message);	
+	}
+
 	/**
 	 * Handle the Zustand set function
 	 * Trigger a postMessage to all the other tabs
 	 */
 	const onSet: typeof set = (...args) => {
-		/**
-		 * Get the previous states
-		 */
-		const previous = get() as Item;
-
 		/**
 		 * Update the states
 		 */
@@ -156,25 +201,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			return;
 		}
 
-		/**
-		 * Get the fresh states
-		 */
-		const updated = get() as Item;
-
-		/**
-		 * Get the states that changed
-		 */
-		const state = Object.entries(updated).reduce((obj, [key, val]) => {
-			if (previous[key] !== val) {
-				obj = { ...obj, [key]: val };
-			}
-			return obj;
-		}, {} as Item);
-
-		/**
-		 * Send the states to all the other tabs
-		 */
-		channel.postMessage({ action: 'change', state } as Message);
+		sendChangeToOtherTabs();
 	};
 
 	/**
@@ -188,21 +215,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (!isMain) {
 				return;
 			}
-
-			/**
-			 * Remove all the functions and symbols from the store
-			 */
-			const state = Object.entries(get() as Item).reduce((obj, [key, val]) => {
-				if (typeof val !== 'function' && typeof val !== 'symbol') {
-					obj = { ...obj, [key]: val };
-				}
-				return obj;
-			}, {});
-
-			/**
-			 * Send the state to the other tabs
-			 */
-			channel.postMessage({ action: 'change', state } as Message);
+			
+			sendChangeToOtherTabs();
 
 			/**
 			 * Set the new tab / window id
@@ -232,7 +246,11 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Update the state
 			 */
-			set(e.data.state);
+			set((state) => (
+				options?.merge?
+					options.merge(state, e.data.state as Partial<T>):
+					e.data.state
+			));
 
 			/**
 			 * Set the synced attribute
