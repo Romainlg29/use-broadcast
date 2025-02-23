@@ -159,7 +159,6 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	const channel = new BroadcastChannel(name);
 
 	const sendChangeToOtherTabs = () => {
-
 		let state: Item = get() as Item;
 
 		/**
@@ -171,18 +170,18 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		}
 
 		/**
-		 * If the user did not specify that serialization should be skipped, remove unsupported types 
+		 * If the user did not specify that serialization should be skipped, remove unsupported types
 		 */
-		if (!options?.skipSerialization){
+		if (!options?.skipSerialization) {
 			// Remove unserializable types (functions, Symbols, etc.) from the state.
-			state = JSON.parse(JSON.stringify(state))
+			state = JSON.parse(JSON.stringify(state));
 		}
 
 		/**
 		 * Send the states to all the other tabs
 		 */
-		channel.postMessage({ action: 'change', state } as Message);	
-	}
+		channel.postMessage({ action: 'change', state } as Message);
+	};
 
 	/**
 	 * Handle the Zustand set function
@@ -215,7 +214,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			if (!isMain) {
 				return;
 			}
-			
+
 			sendChangeToOtherTabs();
 
 			/**
@@ -246,11 +245,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 			/**
 			 * Update the state
 			 */
-			set((state) => (
-				options?.merge?
-					options.merge(state, e.data.state as Partial<T>):
-					e.data.state
-			));
+			set((state) => (options?.merge ? options.merge(state, e.data.state as Partial<T>) : e.data.state));
 
 			/**
 			 * Set the synced attribute
@@ -310,28 +305,34 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Handle case when the tab / window is closed
 	 */
 	const onClose = (): void => {
-		channel.postMessage({ action: 'close', id } as Message);
-
 		/**
-		 * If we're closing the main, make the second the new main
+		 * For some reason, the channel can be closed abruptly, when redirecting for example
+		 * So we need to wrap this in a try catch block
 		 */
-		if (isMain) {
+		try {
+			channel.postMessage({ action: 'close', id } as Message);
+
 			/**
-			 * If there is only one tab left, close the channel and return
+			 * If we're closing the main, make the second the new main
 			 */
-			if (tabs.length === 1) {
+			if (isMain) {
 				/**
-				 * Clean up
+				 * If there is only one tab left, close the channel and return
 				 */
-				channel.close();
+				if (tabs.length === 1) {
+					/**
+					 * Clean up
+					 */
+					channel.close();
+					return;
+				}
+
+				const remaining_tabs = tabs.filter((tab) => tab !== id);
+				channel.postMessage({ action: 'change_main', id: remaining_tabs[0], tabs: remaining_tabs } as Message);
+
 				return;
 			}
-
-			const remaining_tabs = tabs.filter((tab) => tab !== id);
-			channel.postMessage({ action: 'change_main', id: remaining_tabs[0], tabs: remaining_tabs } as Message);
-
-			return;
-		}
+		} catch (e) {}
 	};
 
 	/**
