@@ -57,7 +57,16 @@ export const useBroadcast = <T>(
     /**
      * Send the value to all the other tabs
      */
-    channel.current.postMessage(val);
+    try {
+      channel.current.postMessage(val);
+    } catch (e) {
+      /**
+       * The channel may already be closed by the browser (navigation, refresh).
+       * Drop the message instead of throwing an InvalidStateError.
+       */
+      channel.current = null;
+      return;
+    }
 
     if (!options?.subscribe) {
       setState(val);

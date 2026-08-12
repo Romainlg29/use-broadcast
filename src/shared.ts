@@ -73,6 +73,48 @@ export type Shared = <
 type SharedImpl = <T>(f: StateCreator<T, [], []>, options?: SharedOptions<T>) => StateCreator<T, [], []>;
 
 /**
+ * Is the document currently being torn down?
+ * While unloading, the browser may close our BroadcastChannel underneath us,
+ * so we stop broadcasting state changes rather than throw an InvalidStateError.
+ */
+let isUnloading = false;
+
+/**
+ * Are the unload listeners already registered?
+ * They are shared by every store, so we only need them once.
+ */
+let hasUnloadListeners = false;
+
+/**
+ * Listen for the document teardown
+ * Called by each store before it registers its own 'beforeunload' handler, so that
+ * one still gets to send its close / change_main handover messages.
+ */
+const registerUnloadListeners = (): void => {
+	if (hasUnloadListeners || typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+		return;
+	}
+
+	hasUnloadListeners = true;
+
+	const onUnloading = () => {
+		isUnloading = true;
+	};
+
+	window.addEventListener('beforeunload', onUnloading);
+	window.addEventListener('pagehide', onUnloading);
+
+	/**
+	 * A page restored from the back / forward cache is alive again
+	 */
+	window.addEventListener('pageshow', (e) => {
+		if (e.persisted) {
+			isUnloading = false;
+		}
+	});
+};
+
+/**
  * Shared implementation
  * @param f Zustand state creator
  * @param options The options
@@ -158,7 +200,32 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 */
 	const channel = new BroadcastChannel(name);
 
+	/**
+	 * Has our channel been closed, by us or by the browser?
+	 * Once it is, every postMessage throws, so we stop trying.
+	 */
+	let isChannelClosed = false;
+
+	/**
+	 * Post a message, tolerating a channel that has already been closed
+	 */
+	const post = (message: Message) => {
+		if (isChannelClosed) {
+			return;
+		}
+
+		try {
+			channel.postMessage(message);
+		} catch (e) {
+			isChannelClosed = true;
+		}
+	};
+
 	const sendChangeToOtherTabs = () => {
+		if (isUnloading || isChannelClosed) {
+			return;
+		}
+
 		let state: Item = get() as Item;
 
 		/**
@@ -174,13 +241,23 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		 */
 		if (!options?.skipSerialization) {
 			// Remove unserializable types (functions, Symbols, etc.) from the state.
-			state = JSON.parse(JSON.stringify(state));
+			const serialized = JSON.stringify(state);
+
+			/**
+			 * An undefined or unserializable state gives back undefined here, and
+			 * JSON.parse(undefined) throws. Nothing worth broadcasting either way.
+			 */
+			if (serialized === undefined) {
+				return;
+			}
+
+			state = JSON.parse(serialized);
 		}
 
 		/**
 		 * Send the states to all the other tabs
 		 */
-		channel.postMessage({ action: 'change', state } as Message);
+		post({ action: 'change', state } as Message);
 	};
 
 	/**
@@ -225,7 +302,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 
 			options?.onTabsChange?.(tabs);
 
-			channel.postMessage({ action: 'add_new_tab', id: new_id } as Message);
+			post({ action: 'add_new_tab', id: new_id } as Message);
 
 			return;
 		}
@@ -286,7 +363,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Synchronize with the main tab
 	 */
 	const synchronize = (): void => {
-		channel.postMessage({ action: 'sync' } as Message);
+		post({ action: 'sync' } as Message);
 
 		/**
 		 * If isSynced is false after 100ms, this tab is the main tab
@@ -310,7 +387,7 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 		 * So we need to wrap this in a try catch block
 		 */
 		try {
-			channel.postMessage({ action: 'close', id } as Message);
+			post({ action: 'close', id } as Message);
 
 			/**
 			 * If we're closing the main, make the second the new main
@@ -324,11 +401,12 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 					 * Clean up
 					 */
 					channel.close();
+					isChannelClosed = true;
 					return;
 				}
 
 				const remaining_tabs = tabs.filter((tab) => tab !== id);
-				channel.postMessage({ action: 'change_main', id: remaining_tabs[0], tabs: remaining_tabs } as Message);
+				post({ action: 'change_main', id: remaining_tabs[0], tabs: remaining_tabs } as Message);
 
 				return;
 			}
@@ -339,6 +417,8 @@ const sharedImpl: SharedImpl = (f, options) => (set, get, store) => {
 	 * Add close event listener
 	 */
 	if (typeof window !== 'undefined') {
+		registerUnloadListeners();
+
 		window.addEventListener('beforeunload', onClose);
 	}
 
